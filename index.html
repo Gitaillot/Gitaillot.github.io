@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gitaillot</title>
+  <style>
+    body {
+      font-family: Georgia, serif;
+      max-width: 500px;
+      margin: 60px auto;
+      padding: 0 20px;
+      background: #f9f6f0;
+      color: #2c2c2c;
+    }
+    h1 { font-size: 1.8rem; margin-bottom: 8px; }
+    p.sous-titre { color: #888; font-size: 0.85rem; margin-bottom: 40px; }
+    h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.12em; color: #aaa; margin-bottom: 12px; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
+    ul { list-style: none; padding: 0; margin-bottom: 32px; }
+    li { margin: 10px 0; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+    a { color: #3a6b35; text-decoration: none; font-size: 1rem; }
+    a:hover { text-decoration: underline; }
+    .desc { font-size: 0.8rem; color: #888; }
+    .derniere { font-size: 0.75rem; color: #bbb; font-style: italic; margin-left: auto; }
+    .jamais { font-size: 0.75rem; color: #ddd; font-style: italic; margin-left: auto; }
+  </style>
+</head>
+<body>
+  <h1>Gitaillot</h1>
+  <p class="sous-titre">Projets personnels</p>
+
+  <h2>En cours</h2>
+  <ul>
+    <li>
+      <a href="https://Gitaillot.github.io/flora/">Flora</a>
+      <span class="desc">— Quiz botanique</span>
+      <span class="derniere" id="derniere-flora"></span>
+    </li>
+    <li>
+      <a href="https://Gitaillot.github.io/Conjugaisons/">Conjugaisons</a>
+      <span class="desc">— Conjugaisons françaises</span>
+      <span class="derniere" id="derniere-conjugaisons"></span>
+    </li>
+  </ul>
+
+  <h2>Finalisés</h2>
+  <ul>
+    <li><span style="color:#aaa;font-size:0.85rem;font-style:italic">Aucun pour l'instant.</span></li>
+  </ul>
+
+  <script>
+    function derniereUtilisation(cle, elementId) {
+      try {
+        const val = localStorage.getItem(cle);
+        const el = document.getElementById(elementId);
+        if (!val) { el.className = 'jamais'; el.textContent = 'jamais utilisé'; return; }
+
+        const derniere = new Date(parseInt(val));
+        const maintenant = new Date();
+        const diffMs = maintenant - derniere;
+        const diffJours = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const diffHeures = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffMinutes = Math.floor(diffMs / (1000 * 60));
+
+        let texte;
+        if (diffMinutes < 1)        texte = "à l'instant";
+        else if (diffMinutes < 60)  texte = `il y a ${diffMinutes} min`;
+        else if (diffHeures < 24)   texte = `il y a ${diffHeures} h`;
+        else if (diffJours === 1)   texte = 'hier';
+        else if (diffJours < 30)    texte = `il y a ${diffJours} jours`;
+        else if (diffJours < 365)   texte = `il y a ${Math.floor(diffJours/30)} mois`;
+        else                        texte = `il y a ${Math.floor(diffJours/365)} an(s)`;
+
+        el.textContent = texte;
+      } catch(e) {}
+    }
+
+    derniereUtilisation('flora_derniere_utilisation', 'derniere-flora');
+    derniereUtilisation('conjugaisons_derniere_utilisation', 'derniere-conjugaisons');
+  </script>
+</body>
+</html>
