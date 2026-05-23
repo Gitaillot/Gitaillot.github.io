@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gitaillot</title>
+  <style>
+    body {
+      font-family: Georgia, serif;
+      max-width: 500px;
+      margin: 60px auto;
+      padding: 0 20px;
+      background: #f9f6f0;
+      color: #2c2c2c;
+    }
+    h1 { font-size: 1.8rem; margin-bottom: 8px; }
+    p.sous-titre { color: #888; font-size: 0.85rem; margin-bottom: 48px; }
+    .categories { display: flex; flex-direction: column; gap: 16px; }
+    a.categorie {
+      display: block;
+      padding: 20px 24px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      text-decoration: none;
+      color: #2c2c2c;
+      background: #fff;
+      transition: border-color 0.2s;
+    }
+    a.categorie:hover { border-color: #3a6b35; }
+    a.categorie h2 { font-size: 1.1rem; margin-bottom: 4px; color: #3a6b35; }
+    a.categorie p { font-size: 0.82rem; color: #888; }
+  </style>
+</head>
+<body>
+  <h1>Gitaillot</h1>
+  <p class="sous-titre">Projets personnels</p>
+
+  <div class="categories">
+    <a class="categorie" href="botanique.html">
+      <h2>🌿 Botanique</h2>
+      <p>Reconnaissance de plantes, quiz botaniques</p>
+    </a>
+    <a class="categorie" href="linguistique.html">
+      <h2>📖 Linguistique</h2>
+      <p>Conjugaisons, grammaire, vocabulaire</p>
+    </a>
+  </div>
+</body>
+</html>
