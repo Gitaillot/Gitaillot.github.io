@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Langues vivantes</title>
+  <style>
+    body {
+      font-family: Georgia, serif;
+      max-width: 500px;
+      margin: 60px auto;
+      padding: 0 20px;
+      background: #f9f6f0;
+      color: #2c2c2c;
+    }
+    a.retour { font-size: 0.8rem; color: #888; text-decoration: none; display: inline-block; margin-bottom: 32px; }
+    a.retour:hover { color: #3a6b35; }
+    h1 { font-size: 1.8rem; margin-bottom: 8px; }
+    p.sous-titre { color: #888; font-size: 0.85rem; margin-bottom: 40px; }
+    h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.12em; color: #aaa; margin-bottom: 12px; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
+    ul { list-style: none; padding: 0; margin-bottom: 32px; }
+    li { margin: 10px 0; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+    a.projet { color: #3a6b35; text-decoration: none; font-size: 1rem; }
+    a.projet:hover { text-decoration: underline; }
+    .desc { font-size: 0.8rem; color: #888; }
+    .derniere { font-size: 0.75rem; color: #bbb; font-style: italic; margin-left: auto; }
+    .jamais { font-size: 0.75rem; color: #ddd; font-style: italic; margin-left: auto; }
+  </style>
+</head>
+<body>
+  <a class="retour" href="index.html">← Accueil</a>
+  <h1>🦜 Langues vivantes</h1>
+  <p class="sous-titre">Projets langues vivantes</p>
+
+  <h2>En cours</h2>
+  <ul>
+    <li>
+      <a class="projet" href="https://Gitaillot.github.io/flora/">Flora</a>
+      <span class="desc">— Quiz langues</span>
+      <span id="derniere-flora" class="jamais"></span>
+    </li>
+  </ul>
+
+  <h2>Finalisés</h2>
+  <ul>
+    <li><span style="color:#aaa;font-size:0.85rem;font-style:italic">Aucun pour l'instant.</span></li>
+  </ul>
+
+  <script>
+    function afficherDerniere(cle, elementId) {
+      try {
+        const val = localStorage.getItem(cle);
+        const el = document.getElementById(elementId);
+        if (!val) { el.className = 'jamais'; el.textContent = 'jamais utilisé'; return; }
+        const diffMs = Date.now() - parseInt(val);
+        const m = Math.floor(diffMs / 60000);
+        const h = Math.floor(diffMs / 3600000);
+        const j = Math.floor(diffMs / 86400000);
+        let texte;
+        if (m < 1)       texte = "à l'instant";
+        else if (m < 60) texte = `il y a ${m} min`;
+        else if (h < 24) texte = `il y a ${h} h`;
+        else if (j === 1) texte = 'hier';
+        else if (j < 30) texte = `il y a ${j} jours`;
+        else if (j < 365) texte = `il y a ${Math.floor(j/30)} mois`;
+        else             texte = `il y a ${Math.floor(j/365)} an(s)`;
+        el.className = 'derniere';
+        el.textContent = texte;
+      } catch(e) {}
+    }
+    afficherDerniere('flora_derniere_utilisation', 'derniere-flora');
+  </script>
+</body>
+</html>
