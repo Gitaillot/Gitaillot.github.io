@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suivi de révision — Gitaillot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#ECF0EE; --card:#F8FAF9; --ink:#16231F; --ink-soft:#54635E;
+    --line:#D4DBD7; --pine:#2C6E55; --pine-deep:#1E4D3B;
+    --amber:#A6620A; --rust:#9A3324; --slate:#5C6B82; --blue:#3F537F;
+    --b1:#B7C2BD; --b2:#8FB0A2; --b3:#5E9580; --b4:#3C7A63; --b5:#1E4D3B;
+    --display:'Fraunces',Georgia,serif; --sans:'IBM Plex Sans',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.5;-webkit-font-smoothing:antialiased;padding:32px 20px 64px}
+  .wrap{max-width:880px;margin:0 auto}
+  header.top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;border-bottom:2px solid var(--ink);padding-bottom:18px;margin-bottom:20px}
+  .brand .eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--pine);margin-bottom:6px}
+  .brand h1{font-family:var(--display);font-weight:900;font-size:2.5rem;line-height:1;letter-spacing:-.02em}
+  .today{font-family:var(--mono);font-size:.85rem;color:var(--ink-soft);text-align:right}
+  .today b{display:block;color:var(--ink);font-size:1rem;text-transform:capitalize}
+  .reminder{display:none;background:#FBF1E4;border:1px solid #E7CBA0;color:var(--amber);border-radius:10px;padding:11px 15px;font-size:.88rem;margin-bottom:26px;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  .reminder.show{display:flex}
+  .reminder button{background:var(--amber);border-color:var(--amber);color:#fff;font-size:.8rem;padding:6px 12px}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:30px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .stat .n{font-family:var(--display);font-weight:600;font-size:2rem;line-height:1}
+  .stat .l{font-size:.78rem;color:var(--ink-soft);margin-top:4px}
+  .stat.flag .n{color:var(--amber)} .stat.appr .n{color:var(--blue)} .stat.recalc .n{color:var(--rust)}
+  .leitner{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 20px 16px;margin-bottom:34px}
+  .leitner h2,.section h2{font-family:var(--mono);font-size:.74rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 6px}
+  .leitner h2{margin-bottom:16px}
+  .leitner h2 small,.section h2 small{font-family:var(--sans);letter-spacing:0;text-transform:none;color:var(--slate);font-size:.82rem;margin-left:8px}
+  .section .sub{font-size:.82rem;color:var(--ink-soft);margin-bottom:14px}
+  .boxes{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;align-items:end}
+  .box{display:flex;flex-direction:column;align-items:center;gap:8px}
+  .box .bar{width:100%;background:var(--line);border-radius:6px 6px 0 0;height:96px;display:flex;align-items:flex-end;overflow:hidden}
+  .box .fill{width:100%;border-radius:6px 6px 0 0;transition:height .5s ease}
+  .box .cnt{font-family:var(--mono);font-size:1.1rem;font-weight:500}
+  .box .lab{font-size:.72rem;color:var(--ink-soft);text-align:center;line-height:1.25}
+  .box .lab b{display:block;color:var(--ink);font-family:var(--mono);font-size:.78rem}
+  .box[data-b="1"] .fill{background:var(--b1)} .box[data-b="2"] .fill{background:var(--b2)} .box[data-b="3"] .fill{background:var(--b3)} .box[data-b="4"] .fill{background:var(--b4)} .box[data-b="5"] .fill{background:var(--b5)}
+  .section{margin-bottom:34px}
+  .item{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:13px 16px;display:flex;align-items:center;gap:14px;margin-bottom:10px;flex-wrap:wrap;transition:opacity .35s ease,transform .35s ease}
+  .item.removing{opacity:0;transform:translateX(18px)}
+  .item .emoji{font-size:1.4rem;flex:none;width:30px;text-align:center}
+  .item .txt{flex:1;min-width:140px}
+  .item .path{font-weight:600;font-size:.98rem}
+  .item .path span{color:var(--ink-soft);font-weight:400}
+  .item .meta{font-family:var(--mono);font-size:.74rem;color:var(--ink-soft);margin-top:2px}
+  .item .meta .late{color:var(--rust)} .item .meta .done{color:var(--pine)}
+  .badge{flex:none;font-family:var(--mono);font-size:.72rem;padding:3px 8px;border-radius:999px;border:1px solid var(--line);color:#fff}
+  .badge[data-b="1"]{background:var(--b1);color:var(--ink)} .badge[data-b="2"]{background:var(--b2);color:var(--ink)} .badge[data-b="3"]{background:var(--b3)} .badge[data-b="4"]{background:var(--b4)} .badge[data-b="5"]{background:var(--b5)}
+  .badge.appr{background:#EEF1F8;color:var(--blue);border-color:#C3CDE4}
+  .badge.todo{background:#fff;color:var(--slate);border-color:var(--slate)}
+  .badge.recalc{background:#FBF1E4;color:var(--rust);border-color:#E7CBA0}
+  .actions{display:flex;gap:8px;flex:none;flex-wrap:wrap}
+  button{font-family:var(--sans);font-size:.84rem;font-weight:500;border-radius:8px;padding:8px 13px;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--ink);transition:background .15s,border-color .15s}
+  button:hover{border-color:var(--ink)}
+  button:focus-visible{outline:2px solid var(--pine);outline-offset:2px}
+  button.ok{background:var(--pine);border-color:var(--pine);color:#fff} button.ok:hover{background:var(--pine-deep);border-color:var(--pine-deep)}
+  button.redo{color:var(--rust);border-color:#E3C8C3} button.redo:hover{border-color:var(--rust)}
+  button.start{color:var(--pine);border-color:var(--pine)} button.start:hover{background:var(--pine);color:#fff}
+  button.tiny{font-size:.76rem;padding:6px 10px;color:var(--ink-soft)} button.ghost{background:transparent;color:var(--ink-soft)}
+  .addform{display:flex;gap:8px;flex-wrap:wrap;margin:-2px 0 12px 44px}
+  .addform input{flex:1;min-width:180px;font-family:var(--sans);font-size:.86rem;padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:#fff}
+  .empty{background:var(--card);border:1px dashed var(--line);border-radius:10px;padding:22px;color:var(--ink-soft);font-size:.95rem}
+  .upcoming .item{padding:11px 16px} .upcoming .due{font-family:var(--mono);font-size:.78rem;color:var(--ink-soft);flex:none}
+  .mastery .row{display:grid;grid-template-columns:160px 1fr auto;gap:14px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+  .mastery .row:last-child{border-bottom:none}
+  .mastery .name{font-weight:500}
+  .mastery .track{height:9px;background:var(--line);border-radius:999px;overflow:hidden}
+  .mastery .lvl{height:100%;background:linear-gradient(90deg,var(--b2),var(--b5));border-radius:999px}
+  .mastery .score{font-family:var(--mono);font-size:.82rem;color:var(--ink-soft)}
+  .addrow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .addrow select,.addrow input{font-family:var(--sans);font-size:.86rem;padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:#fff}
+  .addrow input{flex:1;min-width:140px}
+  .catrow{display:flex;align-items:center;gap:12px;padding:9px 14px;background:var(--card);border:1px solid var(--line);border-radius:8px;margin-bottom:7px}
+  .catrow .emoji{flex:none}.catrow .name{flex:1;font-size:.92rem}.catrow .name span{color:var(--ink-soft)}
+  .catrow .tag{font-family:var(--mono);font-size:.72rem;color:var(--ink-soft);flex:none}
+  .catrow .del{flex:none;border:none;background:transparent;color:var(--ink-soft);font-size:1rem;padding:2px 8px}
+  .catrow .del:hover{color:var(--rust)}
+  .backup{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:30px}
+  .backup .status{font-family:var(--mono);font-size:.82rem;color:var(--ink-soft);margin-bottom:14px} .backup .status.warn{color:var(--amber)}
+  .backup .row{display:flex;gap:10px;flex-wrap:wrap}
+  .backup .msg{font-size:.82rem;margin-top:10px;min-height:1.1em} .backup .msg.err{color:var(--rust)} .backup .msg.good{color:var(--pine)}
+  footer{border-top:1px solid var(--line);padding-top:18px;margin-top:8px}
+  footer .note{font-size:.78rem;color:var(--ink-soft);max-width:640px}
+  button.reset{background:transparent;border-color:var(--line);color:var(--ink-soft);font-size:.8rem;margin-top:14px}
+  @media (max-width:620px){ .stats{grid-template-columns:repeat(2,1fr)} .brand h1{font-size:2rem} .actions{width:100%;justify-content:flex-end} .addform{margin-left:0} .mastery .row{grid-template-columns:110px 1fr auto} }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><div class="eyebrow">Répétition espacée · Leitner</div><h1>Suivi de révision</h1></div>
+    <div class="today">aujourd'hui<b id="today-date"></b></div>
+  </header>
+
+  <div class="reminder" id="reminder"><span id="reminder-txt"></span><button id="reminder-export">Télécharger maintenant</button></div>
+  <div class="stats" id="stats"></div>
+
+  <div class="leitner">
+    <h2>Révision long terme — répartition par boîte <small id="leitner-note"></small></h2>
+    <div class="boxes" id="boxes"></div>
+  </div>
+
+  <section class="section">
+    <h2>Court terme — en apprentissage</h2>
+    <p class="sub">Modules revus chaque jour jusqu'à ce que tu les juges acquis ; « Acquis → révision » les fait passer en long terme.</p>
+    <div id="appr"></div>
+  </section>
+
+  <section class="section">
+    <h2>Cartes récalcitrantes</h2>
+    <p class="sub">Cartes extraites d'un module parce qu'elles résistent. Une carte qui ne rentre pas est souvent à reformuler ou à scinder.</p>
+    <div id="cards"></div>
+  </section>
+
+  <section class="section">
+    <h2>Révision long terme — aujourd'hui</h2>
+    <div id="due"></div>
+  </section>
+
+  <section class="section">
+    <h2>À commencer</h2>
+    <p class="sub">« Commencer » place le module en apprentissage. « Déjà su » l'envoie directement en révision hebdomadaire (boîte 3) si tu le maîtrises déjà.</p>
+    <div id="tostart"></div>
+  </section>
+
+  <section class="section upcoming">
+    <h2>À venir cette semaine</h2>
+    <div id="week"></div>
+  </section>
+
+  <section class="section mastery">
+    <h2>Maîtrise par programme (long terme)</h2>
+    <div id="mastery"></div>
+  </section>
+
+  <section class="section catalogue">
+    <h2>Catalogue <small id="cat-count"></small></h2>
+    <p class="sub">Ajoute une entrée, ou découpe un module en sous-thèmes : pour suivre DROM et Métropole séparément, ajoute-les comme sous-thèmes du module « Départements Français », puis supprime l'entrée générique.</p>
+    <div class="addrow">
+      <select id="cat-prog" aria-label="Programme"></select>
+      <input id="cat-module" placeholder="Module (page)" aria-label="Module">
+      <input id="cat-theme" placeholder="Sous-thème (optionnel)" aria-label="Sous-thème">
+      <button class="ok" id="cat-add">Ajouter</button>
+    </div>
+    <div id="catalogue-list"></div>
+  </section>
+
+  <div class="backup">
+    <div class="status" id="backup-status"></div>
+    <div class="row">
+      <button class="ok" id="export">Télécharger la sauvegarde</button>
+      <button id="import-btn">Restaurer une sauvegarde…</button>
+      <input type="file" id="import-file" accept="application/json,.json" hidden>
+    </div>
+    <div class="msg" id="backup-msg"></div>
+  </div>
+
+  <footer>
+    <p class="note">Données enregistrées localement dans ce navigateur (<code>localStorage</code>), sur cet appareil uniquement,
+      non synchronisées. Pense à télécharger une sauvegarde régulièrement ; le rappel apparaît au-delà de 7 jours.
+      Catalogue construit à partir de l'arborescence du site, à compléter en sous-thèmes selon tes besoins.</p>
+    <button class="reset" id="reset">Réinitialiser le catalogue (depuis le site)</button>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const KEY="gitaillot_srs_v2", BK_KEY="gitaillot_srs_lastBackup_v2", DAY=86400000;
+  const INTERVALS={1:1,2:3,3:7,4:15,5:30};
+  const BOX_LABELS={1:"Quotidien",2:"Tous les 3 j",3:"Hebdo",4:"Tous les 15 j",5:"Mensuel"};
+  const PROGRAMS={"Géographie":"🗺️","Botanique":"🌿","Langues":"🦜","Pharmacie & Médecine":"⚕️","Divers":"📚"};
+  const emojiFor=p=>PROGRAMS[p]||"📚";
+  const uid=()=>"x"+Math.random().toString(36).slice(2,9);
+  function startOfDay(ts){const x=new Date(ts);x.setHours(0,0,0,0);return x.getTime();}
+
+  // Catalogue réel du site (niveau page). Tout démarre « à commencer ».
+  function seed(){
+    const P=(program,module,theme)=>({id:uid(),program,module,theme:theme||"",type:"module",phase:"todo",box:null,reviewed:null});
+    return [
+      P("Géographie","Départements Français"),
+      P("Géographie","18 Régions Françaises"),
+      P("Géographie","Deutsche Länder"),
+      P("Géographie","Le Grand Quiz des Régions Françaises"),
+      P("Géographie","Pays d'Afrique"),
+      P("Botanique","Botanique générale"),
+      P("Langues","1000 mots anglais (prononciation)"),
+      P("Langues","Déclinaisons allemandes"),
+      P("Langues","Phrasal verbs anglais"),
+      P("Langues","Verbes irréguliers anglais"),
+      P("Pharmacie & Médecine","Médicaments essentiels"),
+      P("Pharmacie & Médecine","Valeurs usuelles (physiologie/biochimie)"),
+      P("Divers","Couleurs avancées"),
+      P("Divers","Culture générale"),
+      P("Divers","Figures chartistes"),
+      P("Divers","Multiplications et divisions"),
+    ];
+  }
+
+  let mem=null;
+  function load(){ try{const r=localStorage.getItem(KEY); if(r) return migrate(JSON.parse(r));}catch(e){}
+    if(mem) return mem; const s=seed(); save(s); return s; }
+  function save(state){ mem=state; try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){} }
+  function getBackupDate(){ try{return localStorage.getItem(BK_KEY);}catch(e){return null;} }
+  function setBackupDate(iso){ try{localStorage.setItem(BK_KEY,iso);}catch(e){} }
+  function migrate(arr){ return arr.map(it=>{ if(!it.type) it.type="module";
+    if(it.type==="module"&&!it.phase) it.phase= it.reviewed==null?"todo":"rev";
+    if(it.type==="carte"&&!it.phase) it.phase="appr"; if(it.theme==null) it.theme=""; return it; }); }
+
+  const isMod=it=>it.type==="module", isCard=it=>it.type==="carte";
+  const isTodo=it=>isMod(it)&&it.phase==="todo", isAppr=it=>isMod(it)&&it.phase==="appr", isRev=it=>isMod(it)&&it.phase==="rev";
+  function intervalOf(it){ return isRev(it)?INTERVALS[it.box]:1; }
+  function nextDue(it){ return startOfDay(it.reviewed)+intervalOf(it)*DAY; }
+  function daysUntil(it){ return Math.round((nextDue(it)-startOfDay(Date.now()))/DAY); }
+  function due(it){ return it.reviewed!=null && daysUntil(it)<=0; }
+  const label=it=> it.theme ? `${it.module} <span>› ${it.theme}</span>` : it.module;
+
+  function find(id){return state.find(x=>x.id===id);}
+  function touch(it){it.reviewed=startOfDay(Date.now());}
+  function begin(id){const it=find(id);if(it){it.phase="appr";touch(it);save(state);}}
+  function markKnown(id){const it=find(id);if(it){it.phase="rev";it.box=3;touch(it);save(state);}}
+  function passAppr(id){const it=find(id);if(it){touch(it);save(state);}}
+  function promote(id){const it=find(id);if(it){it.phase="rev";it.box=1;touch(it);save(state);}}
+  function reviewRev(id,ok){const it=find(id);if(it){it.box=ok?Math.min(5,it.box+1):1;touch(it);save(state);}}
+  function reviewCard(id){const it=find(id);if(it){touch(it);save(state);}}
+  function resolveCard(id){state=state.filter(x=>x.id!==id);save(state);}
+  function addCard(parentId,lbl){const p=find(parentId);if(!p||!lbl.trim())return;
+    state.push({id:uid(),program:p.program,module:p.module,theme:lbl.trim(),type:"carte",phase:"appr",box:null,reviewed:startOfDay(Date.now())});save(state);}
+  function addEntry(program,module,theme){ if(!module.trim())return;
+    state.push({id:uid(),program,module:module.trim(),theme:theme.trim(),type:"module",phase:"todo",box:null,reviewed:null});save(state);}
+  function deleteEntry(id){state=state.filter(x=>x.id!==id);save(state);}
+
+  function doExport(){
+    const payload={app:"gitaillot-srs",version:5,exportedAt:new Date().toISOString(),items:state};
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");
+    a.href=url; a.download="gitaillot-revision-"+new Date().toISOString().slice(0,10)+".json"; a.click(); URL.revokeObjectURL(url);
+    setBackupDate(new Date().toISOString()); msg("Sauvegarde téléchargée. Range-la en lieu sûr.","good"); render();
+  }
+  function validate(data){
+    const arr=Array.isArray(data)?data:(data&&Array.isArray(data.items)?data.items:null); if(!arr) throw new Error("format");
+    return migrate(arr.map((it,i)=>{ if(!it.program||!it.module) throw new Error("champs");
+      return {id:it.id||uid(),program:it.program,module:it.module,theme:it.theme||"",type:it.type==="carte"?"carte":"module",
+        phase:it.phase||null,box:(it.box==null?null:Math.max(1,Math.min(5,it.box))),reviewed:(it.reviewed==null?null:it.reviewed)};}));
+  }
+  function doImport(file){const r=new FileReader();
+    r.onload=()=>{try{state=validate(JSON.parse(r.result));save(state);msg("Sauvegarde restaurée : "+state.length+" éléments.","good");render();}
+      catch(e){msg("Fichier illisible ou incompatible. Choisis un fichier exporté ici.","err");}};
+    r.onerror=()=>msg("Impossible de lire ce fichier.","err"); r.readAsText(file);}
+  function msg(t,k){const m=document.getElementById("backup-msg");m.textContent=t;m.className="msg "+(k||"");}
+
+  let state=load(), addingTo=null;
+
+  function extractBtn(it){return `<button class="tiny" data-act="extract" data-id="${it.id}">+ récalcitrante</button>`;}
+  function addForm(){return `<div class="addform"><input id="addcard-input" placeholder="Intitulé de la carte qui résiste" aria-label="Carte récalcitrante"><button class="ok" data-act="addok">Ajouter</button><button class="ghost" data-act="addcancel">Annuler</button></div>`;}
+
+  function render(){
+    const today=startOfDay(Date.now());
+    document.getElementById("today-date").textContent=new Date(today).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+
+    const apprL=state.filter(isAppr).sort((a,b)=>daysUntil(a)-daysUntil(b));
+    const cardL=state.filter(isCard).sort((a,b)=>daysUntil(a)-daysUntil(b));
+    const revL=state.filter(isRev), todoL=state.filter(isTodo);
+    const revDue=revL.filter(due).sort((a,b)=>daysUntil(a)-daysUntil(b));
+    const week=revL.filter(it=>{const n=daysUntil(it);return n>=1&&n<=7;}).sort((a,b)=>daysUntil(a)-daysUntil(b));
+    const todayCount=apprL.filter(due).length+cardL.filter(due).length+revDue.length;
+
+    document.getElementById("stats").innerHTML=[
+      [todayCount,"à faire aujourd'hui",todayCount>0?"flag":""],
+      [apprL.length,"en apprentissage",apprL.length>0?"appr":""],
+      [cardL.length,"cartes récalcitrantes",cardL.length>0?"recalc":""],
+      [todoL.length,"à commencer",""]
+    ].map(s=>`<div class="stat ${s[2]}"><div class="n">${s[0]}</div><div class="l">${s[1]}</div></div>`).join("");
+
+    const counts={1:0,2:0,3:0,4:0,5:0}; revL.forEach(it=>counts[it.box]++); const max=Math.max(1,...Object.values(counts));
+    document.getElementById("boxes").innerHTML=[1,2,3,4,5].map(b=>`<div class="box" data-b="${b}"><span class="cnt">${counts[b]}</span><div class="bar"><div class="fill" style="height:${Math.round(counts[b]/max*100)}%"></div></div><div class="lab"><b>Boîte ${b}</b>${BOX_LABELS[b]}</div></div>`).join("");
+    document.getElementById("leitner-note").textContent=`+ ${apprL.length} en apprentissage · ${cardL.length} récalcitrantes`;
+
+    document.getElementById("appr").innerHTML= apprL.length ? apprL.map(it=>{
+      const n=daysUntil(it), meta=n<0?`<span class="late">en retard de ${-n} j</span>`:(n===0?"à revoir aujourd'hui":`<span class="done">revu aujourd'hui</span>`);
+      const revBtn=due(it)?`<button data-act="passappr" data-id="${it.id}">Revu</button>`:"";
+      return `<div class="item" data-id="${it.id}"><span class="emoji">${emojiFor(it.program)}</span><span class="badge appr">Appr.</span><div class="txt"><div class="path">${label(it)}</div><div class="meta">${it.program} · court terme · ${meta}</div></div><div class="actions">${revBtn}<button class="ok" data-act="promote" data-id="${it.id}">Acquis → révision</button>${extractBtn(it)}</div></div>`+(addingTo===it.id?addForm():"");
+    }).join("") : `<div class="empty">Aucun module en apprentissage. Démarres-en un depuis « À commencer ».</div>`;
+
+    document.getElementById("cards").innerHTML= cardL.length ? cardL.map(it=>{
+      const n=daysUntil(it), meta=n<0?`<span class="late">en retard de ${-n} j</span>`:(n===0?"à revoir aujourd'hui":`<span class="done">revue aujourd'hui</span>`);
+      const revBtn=due(it)?`<button data-act="reviewcard" data-id="${it.id}">Revue</button>`:"";
+      return `<div class="item" data-id="${it.id}"><span class="emoji">${emojiFor(it.program)}</span><span class="badge recalc">⚠</span><div class="txt"><div class="path">${it.theme}</div><div class="meta">${it.program} · ${it.module} · ${meta}</div></div><div class="actions">${revBtn}<button class="ghost" data-act="resolvecard" data-id="${it.id}">Résolue</button></div></div>`;
+    }).join("") : `<div class="empty">Aucune carte récalcitrante pour l'instant.</div>`;
+
+    document.getElementById("due").innerHTML= revDue.length ? revDue.map(it=>{
+      const n=daysUntil(it), meta=n<0?`<span class="late">en retard de ${-n} j</span>`:"dû aujourd'hui";
+      return `<div class="item" data-id="${it.id}"><span class="emoji">${emojiFor(it.program)}</span><span class="badge" data-b="${it.box}">B${it.box}</span><div class="txt"><div class="path">${label(it)}</div><div class="meta">${it.program} · ${BOX_LABELS[it.box]} · ${meta}</div></div><div class="actions"><button class="ok" data-act="revok" data-id="${it.id}">Réussi</button><button class="redo" data-act="revredo" data-id="${it.id}">À revoir</button>${extractBtn(it)}</div></div>`+(addingTo===it.id?addForm():"");
+    }).join("") : `<div class="empty">Rien à réviser aujourd'hui en long terme. Reviens demain.</div>`;
+
+    document.getElementById("tostart").innerHTML= todoL.length ? todoL.map(it=>`<div class="item" data-id="${it.id}"><span class="emoji">${emojiFor(it.program)}</span><span class="badge todo">—</span><div class="txt"><div class="path">${label(it)}</div><div class="meta">${it.program} · jamais commencé</div></div><div class="actions"><button class="start" data-act="begin" data-id="${it.id}">Commencer</button><button class="ghost" data-act="known" data-id="${it.id}">Déjà su</button></div></div>`).join("") : `<div class="empty">Tous les modules sont entrés dans le cycle.</div>`;
+
+    document.getElementById("week").innerHTML= week.length ? week.map(it=>{const n=daysUntil(it),when=n===1?"demain":`dans ${n} j`;
+      return `<div class="item"><span class="emoji">${emojiFor(it.program)}</span><span class="badge" data-b="${it.box}">B${it.box}</span><div class="txt"><div class="path">${label(it)}</div><div class="meta">${it.program}</div></div><span class="due">${when}</span></div>`;}).join("") : `<div class="empty">Aucune révision long terme prévue dans les sept prochains jours.</div>`;
+
+    const prog={}; revL.forEach(it=>{(prog[it.program]=prog[it.program]||{sum:0,n:0}).sum+=it.box;prog[it.program].n++;});
+    const rows=Object.entries(prog).map(([name,p])=>{const avg=p.sum/p.n,pct=Math.round(avg/5*100);
+      return `<div class="row"><div class="name">${emojiFor(name)} ${name.replace(' & Médecine','')}</div><div class="track"><div class="lvl" style="width:${pct}%"></div></div><div class="score">${avg.toFixed(1).replace('.',',')} / 5</div></div>`;});
+    document.getElementById("mastery").innerHTML= rows.length?rows.join(""):`<div class="empty">Aucun module encore en révision long terme.</div>`;
+
+    // Catalogue
+    const mods=state.filter(isMod);
+    document.getElementById("cat-count").textContent=`${mods.length} modules`;
+    document.getElementById("catalogue-list").innerHTML= mods.length ? mods.map(it=>{
+      const tag = it.phase==="todo"?"à commencer":(it.phase==="appr"?"apprentissage":"boîte "+it.box);
+      return `<div class="catrow"><span class="emoji">${emojiFor(it.program)}</span><span class="name">${it.module}${it.theme?` <span>› ${it.theme}</span>`:""}</span><span class="tag">${tag}</span><button class="del" data-act="catdel" data-id="${it.id}" aria-label="Supprimer">✕</button></div>`;
+    }).join("") : `<div class="empty">Catalogue vide.</div>`;
+
+    const bk=getBackupDate(),stEl=document.getElementById("backup-status"),remEl=document.getElementById("reminder"),remTxt=document.getElementById("reminder-txt");
+    let overdue=true,ageTxt="aucune sauvegarde téléchargée pour l'instant";
+    if(bk){const days=Math.floor((Date.now()-new Date(bk).getTime())/DAY);overdue=days>7;ageTxt=days===0?"dernière sauvegarde aujourd'hui":`dernière sauvegarde il y a ${days} j`;}
+    stEl.textContent="État : "+ageTxt+"."; stEl.className="status"+(overdue?" warn":"");
+    if(overdue){remEl.classList.add("show");remTxt.textContent=bk?"Ta dernière sauvegarde date de plus de 7 jours.":"Tu n'as pas encore de sauvegarde.";}else remEl.classList.remove("show");
+
+    if(addingTo){const inp=document.getElementById("addcard-input"); if(inp){inp.focus();
+      inp.addEventListener("keydown",e=>{if(e.key==="Enter"){addCard(addingTo,inp.value);addingTo=null;render();}else if(e.key==="Escape"){addingTo=null;render();}});}}
+  }
+
+  document.querySelector(".wrap").addEventListener("click",e=>{
+    const btn=e.target.closest("button[data-act]"); if(!btn) return;
+    const act=btn.dataset.act,id=btn.dataset.id,row=btn.closest(".item");
+    const fade=fn=>{ if(row){row.classList.add("removing");setTimeout(()=>{fn();render();},320);} else {fn();render();} };
+    switch(act){
+      case "begin": fade(()=>begin(id)); break;
+      case "known": fade(()=>markKnown(id)); break;
+      case "promote": fade(()=>promote(id)); break;
+      case "passappr": passAppr(id); render(); break;
+      case "revok": fade(()=>reviewRev(id,true)); break;
+      case "revredo": reviewRev(id,false); render(); break;
+      case "reviewcard": reviewCard(id); render(); break;
+      case "resolvecard": fade(()=>resolveCard(id)); break;
+      case "extract": addingTo=id; render(); break;
+      case "addok": { const v=document.getElementById("addcard-input").value; addCard(addingTo,v); addingTo=null; render(); } break;
+      case "addcancel": addingTo=null; render(); break;
+      case "catdel": deleteEntry(id); render(); break;
+    }
+  });
+  // Catalogue : sélecteur de programme + ajout
+  (function(){ const sel=document.getElementById("cat-prog");
+    sel.innerHTML=Object.keys(PROGRAMS).map(p=>`<option value="${p}">${PROGRAMS[p]} ${p}</option>`).join(""); })();
+  document.getElementById("cat-add").addEventListener("click",()=>{
+    const p=document.getElementById("cat-prog").value, m=document.getElementById("cat-module"), t=document.getElementById("cat-theme");
+    if(!m.value.trim()){m.focus();return;} addEntry(p,m.value,t.value); m.value="";t.value="";m.focus(); render(); });
+  document.getElementById("export").addEventListener("click",doExport);
+  document.getElementById("reminder-export").addEventListener("click",doExport);
+  document.getElementById("import-btn").addEventListener("click",()=>document.getElementById("import-file").click());
+  document.getElementById("import-file").addEventListener("change",e=>{ if(e.target.files[0]) doImport(e.target.files[0]); e.target.value=""; });
+  document.getElementById("reset").addEventListener("click",()=>{ state=seed(); addingTo=null; save(state); msg("",""); render(); });
+
+  render();
+})();
+</script>
+</body>
+</html>
