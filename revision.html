@@ -86,6 +86,10 @@
   .catrow .tag{font-family:var(--mono);font-size:.72rem;color:var(--ink-soft);flex:none}
   .catrow .del{flex:none;border:none;background:transparent;color:var(--ink-soft);font-size:1rem;padding:2px 8px}
   .catrow .del:hover{color:var(--rust)}
+  .catalogue h2.toggle{cursor:pointer;user-select:none;display:inline-flex;align-items:center;gap:8px}
+  .catalogue .chev{display:inline-block;transition:transform .15s;font-size:.85em;color:var(--slate)}
+  .catalogue h2.toggle[aria-expanded="true"] .chev{transform:rotate(90deg)}
+  .catalogue h2.toggle:focus-visible{outline:2px solid var(--pine);outline-offset:3px}
   .backup{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:30px}
   .backup .status{font-family:var(--mono);font-size:.82rem;color:var(--ink-soft);margin-bottom:14px} .backup .status.warn{color:var(--amber)}
   .backup .row{display:flex;gap:10px;flex-wrap:wrap}
@@ -132,7 +136,7 @@
 
   <section class="section">
     <h2>À commencer</h2>
-    <p class="sub">« Commencer » place le module en apprentissage. « Déjà su » l'envoie directement en révision hebdomadaire (boîte 3) si tu le maîtrises déjà.</p>
+    <p class="sub">Modules pas encore entrés dans le cycle. Ils démarrent quand tu les travailles sur leur page, via l'encart de suivi.</p>
     <div id="tostart"></div>
   </section>
 
@@ -147,15 +151,17 @@
   </section>
 
   <section class="section catalogue">
-    <h2>Catalogue <small id="cat-count"></small></h2>
-    <p class="sub">Ajoute une entrée, ou découpe un module en sous-thèmes : pour suivre DROM et Métropole séparément, ajoute-les comme sous-thèmes du module « Départements Français », puis supprime l'entrée générique.</p>
-    <div class="addrow">
-      <select id="cat-prog" aria-label="Programme"></select>
-      <input id="cat-module" placeholder="Module (page)" aria-label="Module">
-      <input id="cat-theme" placeholder="Sous-thème (optionnel)" aria-label="Sous-thème">
-      <button class="ok" id="cat-add">Ajouter</button>
+    <h2 class="toggle" id="cat-toggle" role="button" tabindex="0" aria-expanded="false">Catalogue <small id="cat-count"></small><span class="chev">▸</span></h2>
+    <div id="catalogue-body" hidden>
+      <p class="sub">Ajoute une entrée, ou découpe un module en sous-thèmes : pour suivre DROM et Métropole séparément, ajoute-les comme sous-thèmes du module « Départements Français », puis supprime l'entrée générique.</p>
+      <div class="addrow">
+        <select id="cat-prog" aria-label="Programme"></select>
+        <input id="cat-module" placeholder="Module (page)" aria-label="Module">
+        <input id="cat-theme" placeholder="Sous-thème (optionnel)" aria-label="Sous-thème">
+        <button class="ok" id="cat-add">Ajouter</button>
+      </div>
+      <div id="catalogue-list"></div>
     </div>
-    <div id="catalogue-list"></div>
   </section>
 
   <div class="backup">
@@ -181,7 +187,7 @@
   "use strict";
   const KEY="gitaillot_srs_v2", BK_KEY="gitaillot_srs_lastBackup_v2", DAY=86400000;
   const INTERVALS={1:1,2:3,3:7,4:15,5:30};
-  const BOX_LABELS={1:"Quotidien",2:"Tous les 3 j",3:"Hebdo",4:"Tous les 15 j",5:"Mensuel"};
+  const BOX_LABELS={1:"Quotidien",2:"Ts les 3 j",3:"Hebdo",4:"Ts les 15 j",5:"Mensuel"};
   const PROGRAMS={"Géographie":"🗺️","Botanique":"🌿","Langues":"🦜","Pharmacie & Médecine":"⚕️","Divers":"📚"};
   const emojiFor=p=>PROGRAMS[p]||"📚";
   const uid=()=>"x"+Math.random().toString(36).slice(2,9);
@@ -230,8 +236,6 @@
 
   function find(id){return state.find(x=>x.id===id);}
   function touch(it){it.reviewed=startOfDay(Date.now());}
-  function begin(id){const it=find(id);if(it){it.phase="appr";touch(it);save(state);}}
-  function markKnown(id){const it=find(id);if(it){it.phase="rev";it.box=3;touch(it);save(state);}}
   function passAppr(id){const it=find(id);if(it){touch(it);save(state);}}
   function promote(id){const it=find(id);if(it){it.phase="rev";it.box=1;touch(it);save(state);}}
   function reviewRev(id,ok){const it=find(id);if(it){it.box=ok?Math.min(5,it.box+1):1;touch(it);save(state);}}
@@ -245,7 +249,7 @@
   function resetToTodo(id){const it=find(id);if(it){it.phase="todo";it.box=null;it.reviewed=null;save(state);}}
 
   function doExport(){
-    const payload={app:"gitaillot-srs",version:7,exportedAt:new Date().toISOString(),items:state};
+    const payload={app:"gitaillot-srs",version:10,exportedAt:new Date().toISOString(),items:state};
     const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");
     a.href=url; a.download="gitaillot-revision-"+new Date().toISOString().slice(0,10)+".json"; a.click(); URL.revokeObjectURL(url);
     setBackupDate(new Date().toISOString()); msg("Sauvegarde téléchargée. Range-la en lieu sûr.","good"); render();
@@ -306,7 +310,7 @@
       return `<div class="item" data-id="${it.id}"><span class="emoji">${emojiFor(it.program)}</span><span class="badge" data-b="${it.box}">B${it.box}</span><div class="txt"><div class="path">${label(it)}</div><div class="meta">${it.program} · ${BOX_LABELS[it.box]} · ${meta}</div></div><div class="actions"><button class="ok" data-act="revok" data-id="${it.id}">Réussi</button><button class="redo" data-act="revredo" data-id="${it.id}">À revoir</button>${extractBtn(it)}</div></div>`+(addingTo===it.id?addForm():"");
     }).join("") : `<div class="empty">Rien à réviser aujourd'hui en long terme. Reviens demain.</div>`;
 
-    document.getElementById("tostart").innerHTML= todoL.length ? todoL.map(it=>`<div class="item" data-id="${it.id}"><span class="emoji">${emojiFor(it.program)}</span><span class="badge todo">—</span><div class="txt"><div class="path">${label(it)}</div><div class="meta">${it.program} · jamais commencé</div></div><div class="actions"><button class="start" data-act="begin" data-id="${it.id}">Commencer</button><button class="ghost" data-act="known" data-id="${it.id}">Déjà su</button></div></div>`).join("") : `<div class="empty">Tous les modules sont entrés dans le cycle.</div>`;
+    document.getElementById("tostart").innerHTML= todoL.length ? todoL.map(it=>`<div class="item" data-id="${it.id}"><span class="emoji">${emojiFor(it.program)}</span><span class="badge todo">—</span><div class="txt"><div class="path">${label(it)}</div><div class="meta">${it.program}</div></div></div>`).join("") : `<div class="empty">Tous les modules sont entrés dans le cycle.</div>`;
 
     document.getElementById("week").innerHTML= week.length ? week.map(it=>{const n=daysUntil(it),when=n===1?"demain":`dans ${n} j`;
       return `<div class="item"><span class="emoji">${emojiFor(it.program)}</span><span class="badge" data-b="${it.box}">B${it.box}</span><div class="txt"><div class="path">${label(it)}</div><div class="meta">${it.program}</div></div><span class="due">${when}</span></div>`;}).join("") : `<div class="empty">Aucune révision long terme prévue dans les sept prochains jours.</div>`;
@@ -339,8 +343,6 @@
     const act=btn.dataset.act,id=btn.dataset.id,row=btn.closest(".item");
     const fade=fn=>{ if(row){row.classList.add("removing");setTimeout(()=>{fn();render();},320);} else {fn();render();} };
     switch(act){
-      case "begin": fade(()=>begin(id)); break;
-      case "known": fade(()=>markKnown(id)); break;
       case "promote": fade(()=>promote(id)); break;
       case "passappr": passAppr(id); render(); break;
       case "revok": fade(()=>reviewRev(id,true)); break;
@@ -360,6 +362,10 @@
   document.getElementById("cat-add").addEventListener("click",()=>{
     const p=document.getElementById("cat-prog").value, m=document.getElementById("cat-module"), t=document.getElementById("cat-theme");
     if(!m.value.trim()){m.focus();return;} addEntry(p,m.value,t.value); m.value="";t.value="";m.focus(); render(); });
+  (function(){ var t=document.getElementById("cat-toggle"), b=document.getElementById("catalogue-body");
+    function tog(){ if(b.hasAttribute("hidden")){b.removeAttribute("hidden");t.setAttribute("aria-expanded","true");} else {b.setAttribute("hidden","");t.setAttribute("aria-expanded","false");} }
+    t.addEventListener("click",tog);
+    t.addEventListener("keydown",function(e){ if(e.key==="Enter"||e.key===" "){e.preventDefault();tog();} }); })();
   document.getElementById("export").addEventListener("click",doExport);
   document.getElementById("reminder-export").addEventListener("click",doExport);
   document.getElementById("import-btn").addEventListener("click",()=>document.getElementById("import-file").click());
