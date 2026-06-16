@@ -18,9 +18,8 @@
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.5;-webkit-font-smoothing:antialiased;padding:32px 20px 64px}
   .wrap{max-width:880px;margin:0 auto}
-  .home-link{display:inline-block;margin-bottom:18px;font-family:var(--mono);
-  font-size:.8rem;color:var(--pine);text-decoration:none}
-.home-link:hover{text-decoration:underline}
+  .home-link{display:inline-block;margin-bottom:18px;font-family:var(--mono);font-size:.8rem;color:var(--pine);text-decoration:none}
+  .home-link:hover{text-decoration:underline}
   header.top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;border-bottom:2px solid var(--ink);padding-bottom:18px;margin-bottom:20px}
   .brand .eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--pine);margin-bottom:6px}
   .brand h1{font-family:var(--display);font-weight:900;font-size:2.5rem;line-height:1;letter-spacing:-.02em}
@@ -243,9 +242,10 @@
   function addEntry(program,module,theme){ if(!module.trim())return;
     state.push({id:uid(),program,module:module.trim(),theme:theme.trim(),type:"module",phase:"todo",box:null,reviewed:null});save(state);}
   function deleteEntry(id){state=state.filter(x=>x.id!==id);save(state);}
+  function resetToTodo(id){const it=find(id);if(it){it.phase="todo";it.box=null;it.reviewed=null;save(state);}}
 
   function doExport(){
-    const payload={app:"gitaillot-srs",version:5,exportedAt:new Date().toISOString(),items:state};
+    const payload={app:"gitaillot-srs",version:7,exportedAt:new Date().toISOString(),items:state};
     const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");
     a.href=url; a.download="gitaillot-revision-"+new Date().toISOString().slice(0,10)+".json"; a.click(); URL.revokeObjectURL(url);
     setBackupDate(new Date().toISOString()); msg("Sauvegarde téléchargée. Range-la en lieu sûr.","good"); render();
@@ -292,7 +292,7 @@
     document.getElementById("appr").innerHTML= apprL.length ? apprL.map(it=>{
       const n=daysUntil(it), meta=n<0?`<span class="late">en retard de ${-n} j</span>`:(n===0?"à revoir aujourd'hui":`<span class="done">revu aujourd'hui</span>`);
       const revBtn=due(it)?`<button data-act="passappr" data-id="${it.id}">Revu</button>`:"";
-      return `<div class="item" data-id="${it.id}"><span class="emoji">${emojiFor(it.program)}</span><span class="badge appr">Appr.</span><div class="txt"><div class="path">${label(it)}</div><div class="meta">${it.program} · court terme · ${meta}</div></div><div class="actions">${revBtn}<button class="ok" data-act="promote" data-id="${it.id}">Acquis → révision</button>${extractBtn(it)}</div></div>`+(addingTo===it.id?addForm():"");
+      return `<div class="item" data-id="${it.id}"><span class="emoji">${emojiFor(it.program)}</span><span class="badge appr">Appr.</span><div class="txt"><div class="path">${label(it)}</div><div class="meta">${it.program} · court terme · ${meta}</div></div><div class="actions">${revBtn}<button class="ok" data-act="promote" data-id="${it.id}">Acquis → révision</button>${extractBtn(it)}<button class="ghost" data-act="reset" data-id="${it.id}">Remettre à commencer</button></div></div>`+(addingTo===it.id?addForm():"");
     }).join("") : `<div class="empty">Aucun module en apprentissage. Démarres-en un depuis « À commencer ».</div>`;
 
     document.getElementById("cards").innerHTML= cardL.length ? cardL.map(it=>{
@@ -321,7 +321,7 @@
     document.getElementById("cat-count").textContent=`${mods.length} modules`;
     document.getElementById("catalogue-list").innerHTML= mods.length ? mods.map(it=>{
       const tag = it.phase==="todo"?"à commencer":(it.phase==="appr"?"apprentissage":"boîte "+it.box);
-      return `<div class="catrow"><span class="emoji">${emojiFor(it.program)}</span><span class="name">${it.module}${it.theme?` <span>› ${it.theme}</span>`:""}</span><span class="tag">${tag}</span><button class="del" data-act="catdel" data-id="${it.id}" aria-label="Supprimer">✕</button></div>`;
+      return `<div class="catrow"><span class="emoji">${emojiFor(it.program)}</span><span class="name">${it.module}${it.theme?` <span>› ${it.theme}</span>`:""}</span><span class="tag">${tag}</span>${it.phase!=="todo"?`<button class="del" data-act="reset" data-id="${it.id}" title="Remettre à commencer" aria-label="Remettre à commencer">↺</button>`:""}<button class="del" data-act="catdel" data-id="${it.id}" aria-label="Supprimer">✕</button></div>`;
     }).join("") : `<div class="empty">Catalogue vide.</div>`;
 
     const bk=getBackupDate(),stEl=document.getElementById("backup-status"),remEl=document.getElementById("reminder"),remTxt=document.getElementById("reminder-txt");
@@ -350,6 +350,7 @@
       case "extract": addingTo=id; render(); break;
       case "addok": { const v=document.getElementById("addcard-input").value; addCard(addingTo,v); addingTo=null; render(); } break;
       case "addcancel": addingTo=null; render(); break;
+      case "reset": fade(()=>resetToTodo(id)); break;
       case "catdel": deleteEntry(id); render(); break;
     }
   });
